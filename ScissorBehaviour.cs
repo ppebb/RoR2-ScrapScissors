@@ -73,7 +73,7 @@ namespace ScrapScissors
 
             //Because purchaseable drones and turrets are dumb, we have to check if they actually rolled
             float scrapResult = 0;
-            if(rolls.Count() > 0)
+            if (rolls.Count() > 0)
             {
                 scrapResult = rolls.Max();
             }

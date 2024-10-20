@@ -1,6 +1,7 @@
 ﻿using R2API;
 using RoR2;
 using System;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace ScrapScissors
     internal class ScissorItem
     {
         internal static ItemIndex index;
+        internal static AssetBundle Assets;
 
         internal static void Init()
         {
@@ -19,16 +21,13 @@ namespace ScrapScissors
             On.RoR2.CharacterBody.OnInventoryChanged += CharacterBody_OnInventoryChanged;
             On.RoR2.GlobalEventManager.OnCharacterDeath += GlobalEventManager_OnCharacterDeath;
             On.RoR2.Run.EndStage += Run_EndStage;
+            On.RoR2.ItemCatalog.Init += FindIndex;
         }
 
         private static void AddProvider()
         {
-            using (System.IO.Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ScrapScissors.ScissorBundle"))
-            {
-                AssetBundle bundle = AssetBundle.LoadFromStream(stream);
-                AssetBundleResourcesProvider provider = new AssetBundleResourcesProvider("@ScissorBundle", bundle);
-                ResourcesAPI.AddProvider(provider);
-            }
+            using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ScrapScissors.ScissorBundle");
+            Assets = AssetBundle.LoadFromStream(stream);
         }
 
         private static void AddTokens()
@@ -57,8 +56,8 @@ namespace ScrapScissors
                 descriptionToken = "SCISSORS_DESC_TOKEN",
                 loreToken = "SCISSORS_LORE_TOKEN",
                 tier = ItemTier.Tier1,
-                pickupIconPath = "@ScissorBundle:Assets/Scissor/ScissorIcon.png",
-                pickupModelPath = "@ScissorBundle:Assets/Scissor/ScissorPrefab.prefab",
+                pickupIconSprite = Assets.LoadAsset<Sprite>("Assets/Scissor/ScissorIcon.png"),
+                pickupModelPrefab = Assets.LoadAsset<GameObject>("Assets/Scissor/ScissorPrefab.prefab"),
                 canRemove = true,
                 hidden = false,
                 tags = new ItemTag[]
@@ -68,7 +67,7 @@ namespace ScrapScissors
                 }
             };
 
-            GameObject followerPrefab = Resources.Load<GameObject>("@ScissorBundle:Assets/Scissor/ScissorPrefab.prefab");
+            GameObject followerPrefab = Resources.Load<GameObject>("Assets/Scissor/ScissorPrefab.prefab");
             Vector3 generalScale = new Vector3(0.05f, 0.05f, 0.05f);
             ItemDisplayRuleDict rules = new ItemDisplayRuleDict(new ItemDisplayRule[]
             {
@@ -179,7 +178,7 @@ namespace ScrapScissors
                 }
             });
             rules.Add("mdlCaptain", new ItemDisplayRule[]
-{
+            {
                 new ItemDisplayRule
                 {
                     ruleType = ItemDisplayRuleType.ParentedPrefab,
@@ -189,10 +188,10 @@ namespace ScrapScissors
                     localAngles = new Vector3(0f, -0.05f, 0f),
                     localScale = generalScale
                 }
-});
+            });
 
             CustomItem item = new CustomItem(def, rules);
-            index = ItemAPI.Add(item);
+            ItemAPI.Add(item);
         }
 
         private static void CharacterBody_OnInventoryChanged(On.RoR2.CharacterBody.orig_OnInventoryChanged orig, CharacterBody self)
@@ -200,7 +199,6 @@ namespace ScrapScissors
             orig(self);
             if (!self.gameObject.GetComponent<ScissorBehaviour>() && self.inventory.GetItemCount(index) > 0)
             {
-                //Chat.AddMessage("Added a New ScissorBehaviour");
                 self.gameObject.AddComponent<ScissorBehaviour>();
             }
         }
@@ -221,6 +219,12 @@ namespace ScrapScissors
             {
                 behaviour.itemsGiven = 0;
             }
+        }
+
+        private static void FindIndex(On.RoR2.ItemCatalog.orig_Init orig)
+        {
+            orig();
+            index = ItemCatalog.FindItemIndex("RustyScissors");
         }
     }
 }
